@@ -6,7 +6,7 @@ class ZeroMQConan(ConanFile):
     name = 'zeromq'
 
     source_version = '2.2.0'
-    package_version = '1'
+    package_version = '2'
     version = '%s-%s' % (source_version, package_version)
 
     requires = 'llvm/3.3-2@vuo/stable'

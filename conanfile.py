@@ -18,12 +18,19 @@ class ZeroMQConan(ConanFile):
     build_dir = '_build'
     exports_sources = '*.patch'
 
+    def requirements(self):
+        if platform.system() == 'Linux':
+            self.requires('patchelf/0.9@vuo/stable')
+        elif platform.system() != 'Darwin':
+            raise Exception('Unknown platform "%s"' % platform.system())
+
     def source(self):
         tools.get('http://download.zeromq.org/zeromq-%s.tar.gz' % self.source_version,
                   sha256='43904aeb9ea6844f72ca02e4e53bf1d481a1a0264e64979da761464e88604637')
 
         # https://b33p.net/kosada/node/7603
-        tools.patch(patch_file='skip-abort.patch', base_path=self.source_dir)
+        tools.patch(patch_file='skip-abort-%s.patch' % platform.system(),
+                    base_path=self.source_dir)
 
         self.run('mv %s/COPYING.LESSER %s/%s.txt' % (self.source_dir, self.source_dir, self.name))
 
@@ -61,9 +68,18 @@ class ZeroMQConan(ConanFile):
                 autotools.make(args=['--quiet'])
                 autotools.make(target='install', args=['--quiet'])
 
+            if platform.system() == 'Linux':
+                patchelf = self.deps_cpp_info['patchelf'].rootpath + '/bin/patchelf'
+                self.run('%s --set-soname libzmq.so lib/libzmq.so' % patchelf)
+
     def package(self):
+        if platform.system() == 'Darwin':
+            libext = 'dylib'
+        elif platform.system() == 'Linux':
+            libext = 'so'
+
         self.copy('*.h', src='%s/include' % self.build_dir, dst='include/zmq')
-        self.copy('libzmq.dylib', src='%s/lib' % self.build_dir, dst='lib')
+        self.copy('libzmq.%s' % libext, src='%s/lib' % self.build_dir, dst='lib')
 
         self.copy('%s.txt' % self.name, src=self.source_dir, dst='license')
 

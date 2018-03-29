@@ -25,6 +25,8 @@ class ZeroMQConan(ConanFile):
         # https://b33p.net/kosada/node/7603
         tools.patch(patch_file='skip-abort.patch', base_path=self.source_dir)
 
+        self.run('mv %s/COPYING.LESSER %s/%s.txt' % (self.source_dir, self.source_dir, self.name))
+
     def build(self):
         tools.mkdir(self.build_dir)
         with tools.chdir(self.build_dir):
@@ -62,6 +64,8 @@ class ZeroMQConan(ConanFile):
     def package(self):
         self.copy('*.h', src='%s/include' % self.build_dir, dst='include/zmq')
         self.copy('libzmq.dylib', src='%s/lib' % self.build_dir, dst='lib')
+
+        self.copy('%s.txt' % self.name, src=self.source_dir, dst='license')
 
     def package_info(self):
         self.cpp_info.libs = ['zmq']

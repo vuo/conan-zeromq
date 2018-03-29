@@ -36,11 +36,11 @@ class ZeroMQConan(ConanFile):
             # but this package doesn't need to link with them.
             autotools.libs = []
 
-            autotools.cxx_flags.append('-Oz')
-            autotools.cxx_flags.append('-Wno-error')
+            autotools.flags.append('-Oz')
+            autotools.flags.append('-Wno-error')
 
             if platform.system() == 'Darwin':
-                autotools.cxx_flags.append('-mmacosx-version-min=10.10')
+                autotools.flags.append('-mmacosx-version-min=10.10')
                 autotools.link_flags.append('-Wl,-headerpad_max_install_names')
                 autotools.link_flags.append('-Wl,-install_name,@rpath/libzmq.dylib')
 

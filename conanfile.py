@@ -9,7 +9,7 @@ class ZeroMQConan(ConanFile):
     package_version = '1'
     version = '%s-%s' % (source_version, package_version)
 
-    requires = 'llvm/3.3-1@vuo/stable'
+    requires = 'llvm/3.3-2@vuo/stable'
     settings = 'os', 'compiler', 'build_type', 'arch'
     url = 'http://zeromq.org/'
     license = 'http://zeromq.org/area:licensing'

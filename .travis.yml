@@ -16,6 +16,7 @@ matrix:
                       - sourceline: 'ppa:beineri/opt-qt594-trusty'
                   packages:
                       - qt59qbs
+                      - uuid-dev
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then

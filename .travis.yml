@@ -15,6 +15,7 @@ matrix:
                   sources:
                       - sourceline: 'ppa:beineri/opt-qt594-trusty'
                   packages:
+                      - libc++-dev
                       - qt59qbs
                       - uuid-dev
 
@@ -40,5 +41,5 @@ install:
     - conan user
 
 script:
-    - conan create . vuo/stable || cat /home/travis/.conan/data/zeromq/2.2.0-2/vuo/stable/build/a3dccf8308bd072e8837887330d88619e76166ad/_build/config.log
+    - conan create . vuo/stable
       && conan upload --remote vuo --all --confirm zeromq/*

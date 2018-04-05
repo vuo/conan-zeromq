@@ -41,7 +41,7 @@ class ZeroMQConan(ConanFile):
 
             # The LLVM/Clang libs get automatically added by the `requires` line,
             # but this package doesn't need to link with them.
-            autotools.libs = []
+            autotools.libs = ['c++abi']
 
             autotools.flags.append('-Oz')
             autotools.flags.append('-Wno-error')

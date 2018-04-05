@@ -16,6 +16,7 @@ matrix:
                       - sourceline: 'ppa:beineri/opt-qt594-trusty'
                   packages:
                       - libc++-dev
+                      - libc++abi-dev
                       - qt59qbs
                       - uuid-dev
 

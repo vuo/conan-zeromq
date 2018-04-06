@@ -19,8 +19,10 @@ class ZeroMQTestConan(ConanFile):
         # Ensure we only link to system libraries and our own libraries.
         if platform.system() == 'Darwin':
             self.run('! (otool -L lib/libzmq.dylib | grep -v "^lib/" | egrep -v "^\s*(/usr/lib/|/System/|@rpath/)")')
+            self.run('! (otool -L lib/libzmq.dylib | fgrep "libstdc++")')
             self.run('! (otool -l lib/libzmq.dylib | grep -A2 LC_RPATH | cut -d"(" -f1 | grep "\s*path" | egrep -v "^\s*path @(executable|loader)_path")')
         elif platform.system() == 'Linux':
             self.run('! (ldd lib/libzmq.so | grep "/" | egrep -v "(\s(/lib64/|(/usr)?/lib/x86_64-linux-gnu/)|test_package/build)")')
+            self.run('! (ldd lib/libzmq.so | fgrep "libstdc++")')
         else:
             raise Exception('Unknown platform "%s"' % platform.system())

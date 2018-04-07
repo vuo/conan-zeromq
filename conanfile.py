@@ -68,7 +68,9 @@ class ZeroMQConan(ConanFile):
                 autotools.make(args=['--quiet'])
                 autotools.make(target='install', args=['--quiet'])
 
-            if platform.system() == 'Linux':
+            if platform.system() == 'Darwin':
+                self.run('install_name_tool -change @rpath/libc++.dylib /usr/lib/libc++.1.dylib lib/libzmq.dylib')
+            elif platform.system() == 'Linux':
                 patchelf = self.deps_cpp_info['patchelf'].rootpath + '/bin/patchelf'
                 self.run('%s --set-soname libzmq.so lib/libzmq.so' % patchelf)
 

@@ -6,7 +6,7 @@ class ZeroMQConan(ConanFile):
     name = 'zeromq'
 
     source_version = '2.2.0'
-    package_version = '3'
+    package_version = '4'
     version = '%s-%s' % (source_version, package_version)
 
     build_requires = 'llvm/3.3-5@vuo/stable'
@@ -31,6 +31,8 @@ class ZeroMQConan(ConanFile):
         # https://b33p.net/kosada/node/7603
         tools.patch(patch_file='skip-abort-%s.patch' % platform.system(),
                     base_path=self.source_dir)
+
+        tools.patch(patch_file='thread-name.patch', base_path=self.source_dir)
 
         self.run('mv %s/COPYING.LESSER %s/%s.txt' % (self.source_dir, self.source_dir, self.name))
 

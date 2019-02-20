@@ -1,0 +1,18 @@
+--- src/kqueue.cpp
++++ src/kqueue.cpp
+@@ -154,6 +154,14 @@ void zmq::kqueue_t::stop ()
+ 
+ void zmq::kqueue_t::loop ()
+ {
++    // Name this thread.
++    {
++        char *threadName = nullptr;
++        asprintf(&threadName, "org.zeromq.kqueue  fd=%d", kqueue_fd);
++        pthread_setname_np(threadName);
++        free(threadName);
++    }
++
+     while (!stopping) {
+ 
+         //  Execute any due timers.
+

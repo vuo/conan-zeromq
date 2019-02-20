@@ -12,33 +12,23 @@ matrix:
           python: "3.6"
           addons:
               apt:
-                  sources:
-                      - sourceline: 'ppa:beineri/opt-qt594-trusty'
                   packages:
                       - libc++-dev
                       - libc++abi-dev
-                      - qt59qbs
                       - uuid-dev
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
              brew update &> /dev/null
-          && travis_wait brew install --force-bottle conan qbs
+          && travis_wait brew install --force-bottle conan
           && conan config install https://vuo.org/sites/default/files/conan-macos.zip
       ; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
              pip install conan
           && conan config install https://vuo.org/sites/default/files/conan-linux.zip
-          && . /opt/qt59/bin/qt59-env.sh
       ; fi
 
 install:
-    - qbs --version
-    - qbs setup-qt --detect
-    - qbs setup-toolchains --detect
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-             qbs config defaultProfile clang
-      ; fi
     - conan user
 
 script:

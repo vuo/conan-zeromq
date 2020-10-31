@@ -1,6 +1,6 @@
 --- src/kqueue.cpp
 +++ src/kqueue.cpp
-@@ -154,6 +154,14 @@ void zmq::kqueue_t::stop ()
+@@ -172,6 +172,14 @@
  
  void zmq::kqueue_t::loop ()
  {
@@ -12,7 +12,6 @@
 +        free(threadName);
 +    }
 +
-     while (!stopping) {
- 
+     while (true) {
          //  Execute any due timers.
-
+         int timeout = (int) execute_timers ();

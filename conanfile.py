@@ -1,22 +1,31 @@
-from conans import AutoToolsBuildEnvironment, ConanFile, tools
+from conans import ConanFile, CMake, tools
 import os
 import platform
 
 class ZeroMQConan(ConanFile):
     name = 'zeromq'
 
-    source_version = '2.2.0'
-    package_version = '4'
+    source_version = '4.3.3'
+    package_version = '0'
     version = '%s-%s' % (source_version, package_version)
 
-    build_requires = 'llvm/3.3-5@vuo/stable'
+    build_requires = (
+        'llvm/5.0.2-1@vuo/stable',
+        'macos-sdk/11.0-0@vuo/stable',
+        'vuoutils/1.2@vuo/stable',
+    )
     settings = 'os', 'compiler', 'build_type', 'arch'
     url = 'http://zeromq.org/'
     license = 'http://zeromq.org/area:licensing'
     description = 'A library for distributed messaging'
     source_dir = 'zeromq-%s' % source_version
     build_dir = '_build'
+    install_dir = '_install'
     exports_sources = '*.patch'
+
+    libs = {
+        'zmq': 5,
+    }
 
     def requirements(self):
         if platform.system() == 'Linux':
@@ -25,8 +34,8 @@ class ZeroMQConan(ConanFile):
             raise Exception('Unknown platform "%s"' % platform.system())
 
     def source(self):
-        tools.get('http://download.zeromq.org/zeromq-%s.tar.gz' % self.source_version,
-                  sha256='43904aeb9ea6844f72ca02e4e53bf1d481a1a0264e64979da761464e88604637')
+        tools.get('https://github.com/zeromq/libzmq/releases/download/v%s/zeromq-%s.tar.gz' % (self.source_version, self.source_version),
+                  sha256='9d9285db37ae942ed0780c016da87060497877af45094ff9e1a1ca736e3875a2')
 
         # https://b33p.net/kosada/node/7603
         tools.patch(patch_file='skip-abort-%s.patch' % platform.system(),
@@ -34,47 +43,41 @@ class ZeroMQConan(ConanFile):
 
         tools.patch(patch_file='thread-name.patch', base_path=self.source_dir)
 
-        self.run('mv %s/COPYING.LESSER %s/%s.txt' % (self.source_dir, self.source_dir, self.name))
+        self.run('cp %s/COPYING.LESSER %s/%s.txt' % (self.source_dir, self.source_dir, self.name))
 
     def build(self):
+        import VuoUtils
+
+        cmake = CMake(self)
+
+        cmake.definitions['CMAKE_BUILD_TYPE'] = 'Release'
+        cmake.definitions['CMAKE_C_COMPILER']   = '%s/bin/clang'   % self.deps_cpp_info['llvm'].rootpath
+        cmake.definitions['CMAKE_CXX_COMPILER'] = '%s/bin/clang++' % self.deps_cpp_info['llvm'].rootpath
+        cmake.definitions['CMAKE_C_FLAGS'] = '-Oz'
+        cmake.definitions['CMAKE_CXX_FLAGS'] = cmake.definitions['CMAKE_C_FLAGS']
+        cmake.definitions['CMAKE_CXX_STANDARD'] = '11'
+        cmake.definitions['CMAKE_CXX_STANDARD_REQUIRED'] = 'ON'
+        cmake.definitions['CMAKE_INSTALL_NAME_DIR'] = '@rpath'
+        cmake.definitions['CMAKE_INSTALL_PREFIX'] = '%s/%s' % (os.getcwd(), self.install_dir)
+        cmake.definitions['CMAKE_OSX_ARCHITECTURES'] = 'x86_64;arm64'
+        cmake.definitions['CMAKE_OSX_DEPLOYMENT_TARGET'] = '10.11'
+        cmake.definitions['CMAKE_OSX_SYSROOT'] = self.deps_cpp_info['macos-sdk'].rootpath
+        cmake.definitions['BUILD_SHARED'] = 'ON'
+        cmake.definitions['BUILD_STATIC'] = 'OFF'
+        cmake.definitions['BUILD_TESTS'] = 'OFF'
+        cmake.definitions['WITH_DOCS'] = 'OFF'
+        cmake.definitions['WITH_LIBBSD'] = 'OFF'
+        cmake.definitions['WITH_LIBSODIUM'] = 'OFF'
+        cmake.definitions['ZMQ_BUILD_TESTS'] = 'OFF'
         tools.mkdir(self.build_dir)
         with tools.chdir(self.build_dir):
-            autotools = AutoToolsBuildEnvironment(self)
+            cmake.configure(source_dir='../%s' % self.source_dir,
+                            build_dir='.')
+            cmake.build()
+            cmake.install()
 
-            # The LLVM/Clang libs get automatically added by the `requires` line,
-            # but this package doesn't need to link with them.
-            autotools.libs = ['c++abi']
-
-            autotools.flags.append('-Oz')
-            autotools.flags.append('-Wno-error')
-
-            if platform.system() == 'Darwin':
-                autotools.flags.append('-mmacosx-version-min=10.10')
-                autotools.link_flags.append('-Wl,-headerpad_max_install_names')
-                autotools.link_flags.append('-Wl,-install_name,@rpath/libzmq.dylib')
-
-            env_vars = {
-                'CC' : self.deps_cpp_info['llvm'].rootpath + '/bin/clang',
-                'CXX': self.deps_cpp_info['llvm'].rootpath + '/bin/clang++ -stdlib=libc++',
-            }
-            with tools.environment_append(env_vars):
-                autotools.configure(configure_dir='../%s' % self.source_dir,
-                                    build=False,
-                                    host=False,
-                                    args=['--quiet',
-                                          '--disable-static',
-                                          '--enable-shared',
-                                          '--enable-silent-rules',
-                                          '--without-documentation',
-                                          '--prefix=%s' % os.getcwd()])
-                autotools.make(args=['--quiet'])
-                autotools.make(target='install', args=['--quiet'])
-
-            if platform.system() == 'Darwin':
-                self.run('install_name_tool -change @rpath/libc++.dylib /usr/lib/libc++.1.dylib lib/libzmq.dylib')
-            elif platform.system() == 'Linux':
-                patchelf = self.deps_cpp_info['patchelf'].rootpath + '/bin/patchelf'
-                self.run('%s --set-soname libzmq.so lib/libzmq.so' % patchelf)
+        with tools.chdir('%s/lib' % self.install_dir):
+            VuoUtils.fixLibs(self.libs, self.deps_cpp_info)
 
     def package(self):
         if platform.system() == 'Darwin':
@@ -82,8 +85,8 @@ class ZeroMQConan(ConanFile):
         elif platform.system() == 'Linux':
             libext = 'so'
 
-        self.copy('*.h', src='%s/include' % self.build_dir, dst='include/zmq')
-        self.copy('libzmq.%s' % libext, src='%s/lib' % self.build_dir, dst='lib')
+        self.copy('*.h', src='%s/include' % self.install_dir, dst='include/zmq')
+        self.copy('libzmq.%s' % libext, src='%s/lib' % self.install_dir, dst='lib')
 
         self.copy('%s.txt' % self.name, src=self.source_dir, dst='license')
 
